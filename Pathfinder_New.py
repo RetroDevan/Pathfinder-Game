@@ -19,7 +19,7 @@ text_font = pygame.font.SysFont("Arial",22)
 
 window_size = 800
 window = pygame.display.set_mode((window_size,window_size))
-grid_size = 20
+grid_size = 40
 
 pygame.display.set_caption("Pathfinder")
 
@@ -40,18 +40,18 @@ class block:
         pygame.draw.rect(window,self.color,(self.xcor,self.ycor,gap,gap))
     
     def assign_neighbours(self,grid):
-        if(self.row>0 and grid[self.row-1][self.col].color != WHITE):
-            self.neighbors.append(grid[self.row-1][self.col])
-        if(self.row<grid_size-1 and grid[self.row+1][self.col].color != WHITE):
-            self.neighbors.append(grid[self.row+1][self.col])
-        if(self.col>0 and grid[self.row][self.col-1].color!=WHITE):
-            self.neighbors.append(grid[self.row][self.col-1])
-        if(self.col<grid_size-1 and grid[self.row][self.col+1].color!= WHITE):
-            self.neighbors.append(grid[self.row][self.col+1])
+        if(self.row>0 and grid[self.row-1][self.col].color != BLACK):
+            self.neighbours.append(grid[self.row-1][self.col])
+        if(self.row<grid_size-1 and grid[self.row+1][self.col].color != BLACK):
+            self.neighbours.append(grid[self.row+1][self.col])
+        if(self.col>0 and grid[self.row][self.col-1].color!=BLACK):
+            self.neighbours.append(grid[self.row][self.col-1])
+        if(self.col<grid_size-1 and grid[self.row][self.col+1].color!= BLACK):
+            self.neighbours.append(grid[self.row][self.col+1])
 
-def draw_text(text,font,text_col,x,y):
-    img = font.render(text, True, text_col)
-    window.blit(img,(x,y))
+#def draw_text(text,font,text_col,x,y):
+#    img = font.render(text, True, text_col)
+#    window.blit(img,(x,y))
 
 
 
@@ -71,6 +71,7 @@ def draw(grid):
             grid[i][j].makeblock()
     
     gridlines()
+    pygame.display.update()
 
 
 def manhattan(a,b):
@@ -105,7 +106,7 @@ def Astar(draw,grid,st,end):
                 draw()
             return
 
-        for i in curr.neighbors:
+        for i in curr.neighbours:
             if(g[i] > g[curr]+1):
                 trackpath[i] = curr
                 g[i] = g[curr]+1
@@ -121,7 +122,7 @@ def Astar(draw,grid,st,end):
     return
 
 
-def eucledean(a,b):
+def euclidean(a,b):
     return ((a.xcor-b.xcor)**2 + (a.ycor-b.ycor)**2)**(0.5)
 
 def bestfirstsearch(draw,grid,st,end):
@@ -130,7 +131,7 @@ def bestfirstsearch(draw,grid,st,end):
     for i in range(grid_size):
         for j in range(grid_size):
             vis[grid[i][j]] = False
-            val[grid[i][j]] = eucledean(grid[i][j],end)
+            val[grid[i][j]] = euclidean(grid[i][j],end)
     trackpath = {}
     have = []
     cnt = 0
@@ -149,7 +150,7 @@ def bestfirstsearch(draw,grid,st,end):
                 draw()
             return
 
-        for i in curr.neighbors:
+        for i in curr.neighbours:
             if(not vis[i]):
                 i.color = GREEN
                 trackpath[i] = curr
@@ -161,7 +162,43 @@ def bestfirstsearch(draw,grid,st,end):
             curr.color = ORANGE
     return
 
+def djkistra(draw,grid,st,end):
+    hash = {}
+    h = []
+    dist = {}
+    for i in range(grid_size):
+        for j in range(grid_size):
+            dist[grid[i][j]] = 10**9
+    dist[st] = 0
 
+    trackpath = {}
+
+    cnt = 0 
+    heappush(h,(0,cnt,st))
+    while(len(h)!=0):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
+        curr = heappop(h)[2]
+        if(curr == end):
+            while(curr in trackpath):
+                curr = trackpath[curr]
+                curr.color = RED
+                draw()
+            return
+        print(curr.neighbours)
+        for i in curr.neighbours:
+            if(dist[i] > dist[curr]+1):
+                trackpath[i] = curr
+                dist[i] = dist[curr]+1
+                i.color = GREEN
+                cnt+=1
+                heappush(h,(dist[i],cnt,i))
+        draw()
+        if(curr!=st):
+            curr.color = ORANGE
+    return
 
 
 def main():
@@ -178,14 +215,14 @@ def main():
     running = True
     while(running):
         draw(grid)
-        if(not st):
-            draw_text("CLICK ON THE START POINT", text_font, BLACK,5,5)
-        elif(not end):
-            draw_text("CLICK ON THE FINISH POINT, RIGHT CLICK TO REMOVE START POINT", text_font, BLACK,5,5)
-        elif(not ob):
-            draw_text("DRAW OBSTRUCTIONS, THEN PRESS ENTER. OR RIGHT CLICK TO REMOVE", text_font, BLACK,5,5)
-        else:
-            draw_text("PRESS 1-ASTAR, 2-BFS, 3-DJIKSTRA, BACKSPACE TO GO BACK",text_font, BLACK,5,5)
+#        if(not st):
+#            draw_text("CLICK ON THE START POINT", text_font, BLACK,5,5)
+#        elif(not end):
+#            draw_text("CLICK ON THE FINISH POINT, RIGHT CLICK TO REMOVE START POINT", text_font, BLACK,5,5)
+#        elif(not ob):
+#            draw_text("DRAW OBSTRUCTIONS, THEN PRESS ENTER. OR RIGHT CLICK TO REMOVE", text_font, BLACK,5,5)
+#        else:
+#            draw_text("PRESS 1-ASTAR, 2-BFS, 3-DJIKSTRA, BACKSPACE TO CLEAR",text_font, BLACK,5,5)
         for event in pygame.event.get():
             print(event)
             if event.type == pygame.QUIT:
@@ -228,16 +265,32 @@ def main():
                     ob = True
                 
             elif(event.type==pygame.KEYDOWN and ob):
+
+                for i in range(grid_size):
+                        for j in range(grid_size):
+                            grid[i][j].assign_neighbours(grid)
                 
                 if event.key==pygame.K_BACKSPACE:
                     ob = False
-                elif(event.key == pygame.K_2): 
-                    djkistra(lambda:draw(grid),grid,st,end)
-                elif(event.key == pygame.K_a): 
-                    Astar(lambda:draw(grid),grid,st,end)
-                if(event.key == pygame.K_3): #best first seach
-                    bestfirstsearch(lambda :draw(grid),grid,st,end)
-                    
+                    grid = []
+                    for i in range(grid_size):
+                        temp = []
+                        for j in range(grid_size):
+                            temp.append(block(i,j))
+                        grid.append(temp)
+                    st = False
+                    end = False
+                else:
+                    if(event.key == pygame.K_a): 
+                        djkistra(lambda:draw(grid),grid,st,end)
+                        continue
+                    if(event.key == pygame.K_b): 
+                        Astar(lambda:draw(grid),grid,st,end)
+                        continue
+                    if(event.key == pygame.K_c):
+                        bestfirstsearch(lambda :draw(grid),grid,st,end)
+                        continue
+
 
         pygame.display.update()
 
